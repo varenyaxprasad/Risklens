@@ -1,0 +1,16 @@
+Credit Risk Fundamentals
+
+Credit risk is the possibility that a borrower may fail to repay
+a loan according to the agreed terms.
+
+Factors that may influence credit risk include credit score,
+income, existing debt obligations, employment stability,
+loan amount, interest rate, and repayment period.
+
+A credit score is one indicator of creditworthiness. Lenders
+should consider multiple factors rather than relying on a single
+indicator when assessing a loan application.
+
+The debt-to-income ratio compares a borrower's monthly debt
+payments with their monthly income. A higher ratio may indicate
+less capacity to take on additional debt.

@@ -1,4 +1,4 @@
-
+from functools import lru_cache
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -12,46 +12,38 @@ CHROMA_DIR = PROJECT_ROOT / "data" / "chroma_db"
 load_dotenv(PROJECT_ROOT / ".env")
 
 
-def main():
+@lru_cache(maxsize=1)
+def get_vectorstore():
     embeddings = HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
-
-    vectorstore = Chroma(
+    return Chroma(
         persist_directory=str(CHROMA_DIR),
         embedding_function=embeddings,
         collection_name="risklens_knowledge",
     )
 
-    model = ChatGoogleGenerativeAI(
-        model="gemini-3.8-flash",
-        temperature=0,
+
+@lru_cache(maxsize=1)
+def get_model():
+    return ChatGoogleGenerativeAI(model="gemini-3.8-flash", temperature=0)
+
+
+def answer_question(question):
+    documents = get_vectorstore().similarity_search(question, k=3)
+
+    if not documents:
+        return {
+            "answer": "No relevant information was found in the knowledge base.",
+            "sources": [],
+        }
+
+    context = "\n\n".join(
+        f"Source: {doc.metadata.get('source', 'Unknown')}\n{doc.page_content}"
+        for doc in documents
     )
 
-    print("RiskLens RAG is ready. Type 'exit' to quit.")
-
-    while True:
-        question = input("\nAsk a credit-risk question: ").strip()
-
-        if question.lower() in {"exit", "quit"}:
-            break
-
-        if not question:
-            continue
-
-        documents = vectorstore.similarity_search(question, k=3)
-
-        if not documents:
-            print("No relevant information was found in the knowledge base.")
-            continue
-
-        context = "\n\n".join(
-            f"Source: {doc.metadata.get('source', 'Unknown')}\n"
-            f"{doc.page_content}"
-            for doc in documents
-        )
-
-        prompt = f"""
+    prompt = f"""
 You are RiskLens, a credit-risk information assistant.
 
 Answer using only the context below.
@@ -67,26 +59,39 @@ Question:
 Give a clear, concise answer. Mention the source filenames used.
 """
 
-        response = model.invoke(prompt)
+    content = get_model().invoke(prompt).content
 
-        content = response.content
+    if isinstance(content, list):
+        answer = "\n".join(
+            block["text"]
+            for block in content
+            if isinstance(block, dict) and block.get("type") == "text"
+        )
+    else:
+        answer = str(content)
 
-        if isinstance(content, list):
-            answer = "\n".join(
-                block["text"]
-                for block in content
-                if isinstance(block, dict)
-                and block.get("type") == "text"
-            )
-        else:
-            answer = str(content)
+    sources = sorted({doc.metadata.get("source", "Unknown") for doc in documents})
+    return {"answer": answer, "sources": sources}
 
-        print("\nRiskLens:", answer)
+
+def main():
+    print("RiskLens RAG is ready. Type 'exit' to quit.")
+
+    while True:
+        question = input("\nAsk a credit-risk question: ").strip()
+
+        if question.lower() in {"exit", "quit"}:
+            break
+
+        if not question:
+            continue
+
+        result = answer_question(question)
+        print("\nRiskLens:", result["answer"])
         print("\nRetrieved sources:")
-        for doc in documents:
-            print("-", doc.metadata.get("source", "Unknown"))
+        for source in result["sources"]:
+            print("-", source)
 
 
 if __name__ == "__main__":
     main()
-

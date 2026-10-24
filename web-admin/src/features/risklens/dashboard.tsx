@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Calculator, MessagesSquare } from 'lucide-react'
+import {
+  ArrowUpRight,
+  BarChart3,
+  FileSearch,
+  MessagesSquare,
+  ShieldCheck,
+} from 'lucide-react'
 import { get } from '@/lib/risklens-api'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -11,11 +16,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Header } from '@/components/layout/header'
-import { Main } from '@/components/layout/main'
 
 type Health = { status: string; model: string }
 type Status = 'checking' | 'offline' | Health
+
+const trust = [
+  { icon: BarChart3, text: 'Factor-level explanations' },
+  { icon: FileSearch, text: 'Answers cite their sources' },
+  { icon: ShieldCheck, text: 'Estimates, not lending decisions' },
+]
 
 const steps = [
   {
@@ -28,7 +37,7 @@ const steps = [
   },
   {
     title: '3. Ask the assistant',
-    text: 'Ask credit-risk questions and get answers grounded in the knowledge base, with sources.',
+    text: 'Ask credit-risk questions and get answers grounded in the knowledge base.',
   },
 ]
 
@@ -43,98 +52,93 @@ export function Dashboard() {
 
   return (
     <>
-      <Header>
-        <h1 className='text-lg font-semibold'>Dashboard</h1>
-      </Header>
-      <Main>
-        <div className='mb-6'>
-          <h2 className='text-2xl font-bold tracking-tight'>
-            Welcome to RiskLens
-          </h2>
-          <p className='text-muted-foreground'>
-            Credit-risk estimates and explanations in one place.
+      <section className='relative overflow-hidden border-b bg-gradient-to-br from-emerald-950 via-neutral-900 to-neutral-950'>
+        <div className='mx-auto flex max-w-6xl flex-col items-center px-4 py-24 text-center'>
+          <h1 className='text-5xl font-semibold tracking-tight md:text-7xl'>
+            Understand{' '}
+            <em
+              className='font-normal'
+              style={{ fontFamily: "'Instrument Serif', serif" }}
+            >
+              credit
+            </em>{' '}
+            risk
+          </h1>
+          <p className='text-muted-foreground mt-5 max-w-xl text-lg'>
+            Clear default-risk estimates and plain-language answers for every
+            loan application.
           </p>
+          <div className='mt-8 flex gap-3'>
+            <Link
+              to='/assess'
+              className='bg-foreground text-background flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium'
+            >
+              Start assessment <ArrowUpRight className='h-4 w-4' />
+            </Link>
+            <Link
+              to='/assistant'
+              className='flex items-center gap-2 rounded-full border px-6 py-3 text-sm font-medium'
+            >
+              <MessagesSquare className='h-4 w-4' /> Ask the assistant
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className='border-b'>
+        <div className='mx-auto grid max-w-6xl gap-4 px-4 py-6 md:grid-cols-3'>
+          {trust.map((t) => (
+            <div
+              key={t.text}
+              className='flex items-center justify-center gap-3 text-sm font-medium'
+            >
+              <t.icon className='h-5 w-5' /> {t.text}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <main className='mx-auto w-full max-w-6xl space-y-4 px-4 py-10'>
+        <div className='grid gap-4 md:grid-cols-3'>
+          {steps.map((s) => (
+            <Card key={s.title}>
+              <CardHeader>
+                <CardTitle className='text-base'>{s.title}</CardTitle>
+                <CardDescription>{s.text}</CardDescription>
+              </CardHeader>
+            </Card>
+          ))}
         </div>
 
-        <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-          <Card>
-            <CardHeader>
-              <CardTitle className='flex items-center gap-2'>
-                <Calculator className='h-5 w-5' /> Assess
-              </CardTitle>
-              <CardDescription>
-                Estimate the default risk for a loan applicant.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild>
-                <Link to='/assess'>Start assessment</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className='flex items-center gap-2'>
-                <MessagesSquare className='h-5 w-5' /> Assistant
-              </CardTitle>
-              <CardDescription>
-                Ask credit-risk questions answered from the knowledge base.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild variant='outline'>
-                <Link to='/assistant'>Open assistant</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>System status</CardTitle>
-              <CardDescription>Live check of the RiskLens engine.</CardDescription>
-            </CardHeader>
-            <CardContent className='space-y-2'>
-              {status === 'checking' && (
-                <Badge variant='outline'>Checking...</Badge>
-              )}
-              {status === 'offline' && (
-                <Badge variant='destructive'>Engine offline</Badge>
-              )}
-              {typeof status === 'object' && (
-                <>
-                  <Badge variant='secondary'>Engine online</Badge>
-                  <p className='text-muted-foreground text-sm'>
-                    Model:{' '}
-                    {status.model === 'trained'
-                      ? 'trained model'
-                      : 'demo model (mock results)'}
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className='mt-4'>
+        <Card>
           <CardHeader>
-            <CardTitle>How it works</CardTitle>
+            <CardTitle className='text-base'>System status</CardTitle>
+            <CardDescription>Live check of the RiskLens engine.</CardDescription>
           </CardHeader>
-          <CardContent className='grid gap-4 md:grid-cols-3'>
-            {steps.map((s) => (
-              <div key={s.title}>
-                <p className='font-medium'>{s.title}</p>
-                <p className='text-muted-foreground text-sm'>{s.text}</p>
-              </div>
-            ))}
+          <CardContent className='flex items-center gap-3'>
+            {status === 'checking' && <Badge variant='outline'>Checking...</Badge>}
+            {status === 'offline' && (
+              <Badge variant='destructive'>Engine offline</Badge>
+            )}
+            {typeof status === 'object' && (
+              <>
+                <Badge variant='secondary'>Engine online</Badge>
+                <span className='text-muted-foreground text-sm'>
+                  Model:{' '}
+                  {status.model === 'trained'
+                    ? 'trained model'
+                    : 'demo model (mock results)'}
+                </span>
+              </>
+            )}
           </CardContent>
         </Card>
 
-        <p className='text-muted-foreground mt-4 text-xs'>
+        <p className='text-muted-foreground text-xs'>
           RiskLens gives estimates for information only. It is not a lending
           decision.
         </p>
-      </Main>
+      </main>
     </>
   )
 }
